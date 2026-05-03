@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ET TOY'S – Games & Entertainment</title>
+  <meta name="description" content="Os melhores jogos de tabuleiro e cartas em Maputo. Encomenda via WhatsApp!"/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:    #060C18;
+      --bg2:   #0B1425;
+      --card:  #0F1C30;
+      --green: #00E5A0;
+      --blue:  #4F8EF7;
+      --gold:  #FFD166;
+      --white: #F0F6FF;
+      --muted: #7A93B8;
+      --border: rgba(0,229,160,0.12);
+      --grad:  linear-gradient(135deg, #00E5A0, #4F8EF7);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Syne', sans-serif; background: var(--bg); color: var(--white); overflow-x: hidden; cursor: none; }
+
+    /* CURSOR */
+    #cursor { position: fixed; z-index: 9999; width: 12px; height: 12px; background: var(--green); border-radius: 50%; pointer-events: none; transform: translate(-50%,-50%); transition: transform .15s, width .2s, height .2s; mix-blend-mode: exclusion; }
+    #cursor-ring { position: fixed; z-index: 9998; width: 36px; height: 36px; border: 1.5px solid var(--green); border-radius: 50%; pointer-events: none; transform: translate(-50%,-50%); transition: left .18s ease, top .18s ease; opacity: .45; }
+
+    /* CANVAS */
+    #bg-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--green); border-radius: 4px; }
+
+    /* NAVBAR */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2.5rem;
+      background: rgba(6,12,24,.75); backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      transition: padding .3s;
+    }
+    nav.scrolled { padding: .6rem 2.5rem; }
+    .nav-left { display: flex; align-items: center; gap: .8rem; text-decoration: none; }
+    .nav-logo-svg { width: 32px; }
+    .nav-brand { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: 4px; background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .nav-right { display: flex; align-items: center; gap: 1rem; }
+    .nav-links { display: flex; gap: 1.75rem; list-style: none; }
+    .nav-links a { font-size: .75rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); text-decoration: none; transition: color .2s; }
+    .nav-links a:hover { color: var(--green); }
+    .cart-btn { position: relative; background: rgba(0,229,160,.07); border: 1px solid var(--border); color: var(--white); padding: .5rem .95rem; border-radius: 50px; cursor: pointer; font-family: 'Syne', sans-serif; font-size: .85rem; display: flex; align-items: center; gap: .5rem; transition: background .2s, border-color .2s; }
+    .cart-btn:hover { background: rgba(0,229,160,.15); border-color: var(--green); }
+    .cart-count { position: absolute; top: -7px; right: -7px; background: var(--green); color: var(--bg); font-size: .6rem; font-weight: 800; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transform: scale(0); transition: transform .3s cubic-bezier(.34,1.56,.64,1); }
+    .cart-count.visible { transform: scale(1); }
+    .burger { display: none; flex-direction: column; gap: 5px; cursor: pointer; }
+    .burger span { width: 22px; height: 2px; background: var(--white); border-radius: 2px; }
+
+    /* HERO */
+    .hero { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 8rem 1.5rem 5rem; overflow: hidden; }
+    .hero-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(0,229,160,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,160,.035) 1px, transparent 1px); background-size: 60px 60px; pointer-events: none; }
+    .orb { position: absolute; border-radius: 50%; pointer-events: none; filter: blur(80px); }
+    .orb1 { width: 520px; height: 520px; background: rgba(0,229,160,.11); top: 0; left: 50%; transform: translateX(-50%); animation: driftY 11s ease-in-out infinite; }
+    .orb2 { width: 320px; height: 320px; background: rgba(79,142,247,.09); top: 35%; right: 5%; animation: driftY 14s ease-in-out infinite 2s; }
+    .orb3 { width: 220px; height: 220px; background: rgba(255,209,102,.06); top: 20%; left: 5%; animation: driftY 9s ease-in-out infinite 1s; }
+    @keyframes driftY { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-28px); } }
+    .orb1 { transform: translateX(-50%); }
+
+    .hero-logo-wrap { margin-bottom: 1.25rem; opacity: 0; animation: riseIn .7s .1s ease forwards; }
+    .hero-logo-svg { width: 90px; filter: drop-shadow(0 0 28px rgba(0,229,160,.4)); }
+    .hero-eyebrow { display: flex; align-items: center; gap: .7rem; font-size: .7rem; letter-spacing: 5px; text-transform: uppercase; color: var(--green); margin-bottom: 1rem; opacity: 0; animation: riseIn .7s .2s ease forwards; }
+    .eline { width: 28px; height: 1px; background: var(--green); }
+    h1 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(4rem, 13vw, 10rem); line-height: .9; letter-spacing: 8px; background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; opacity: 0; animation: riseIn .7s .3s ease forwards; }
+    .hero-sub { font-family: 'Bebas Neue', sans-serif; font-size: clamp(.9rem, 2.5vw, 1.3rem); letter-spacing: 13px; color: var(--muted); margin-top: .25rem; opacity: 0; animation: riseIn .7s .4s ease forwards; }
+    .hero-desc { max-width: 450px; margin: 1.5rem auto 0; color: var(--muted); font-size: .93rem; line-height: 1.75; opacity: 0; animation: riseIn .7s .5s ease forwards; }
+    .hero-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 2.25rem; opacity: 0; animation: riseIn .7s .6s ease forwards; }
+    .hero-stats { display: flex; gap: 2.5rem; justify-content: center; flex-wrap: wrap; margin-top: 4rem; opacity: 0; animation: riseIn .7s .8s ease forwards; }
+    .stat { text-align: center; }
+    .stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; letter-spacing: 2px; background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .stat-label { font-size: .68rem; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-top: .15rem; }
+
+    @keyframes riseIn { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* BUTTONS */
+    .btn-primary { display: inline-flex; align-items: center; gap: .5rem; background: var(--grad); color: var(--bg); font-weight: 800; font-size: .9rem; padding: .85rem 2rem; border-radius: 50px; text-decoration: none; border: none; cursor: pointer; font-family: 'Syne', sans-serif; transition: transform .2s, box-shadow .2s; box-shadow: 0 0 35px rgba(0,229,160,.18); }
+    .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 0 50px rgba(0,229,160,.32); }
+    .btn-ghost { display: inline-flex; align-items: center; gap: .5rem; border: 1px solid var(--border); color: var(--white); font-size: .9rem; padding: .85rem 2rem; border-radius: 50px; text-decoration: none; background: transparent; cursor: pointer; font-family: 'Syne', sans-serif; transition: border-color .2s, background .2s; }
+    .btn-ghost:hover { border-color: var(--green); background: rgba(0,229,160,.05); }
+
+    .divider { width: 100%; height: 1px; background: linear-gradient(90deg, transparent, var(--green), var(--blue), transparent); opacity: .18; position: relative; z-index: 1; }
+
+    /* SEARCH */
+    .search-wrap { position: relative; z-index: 1; padding: 2.5rem 2rem 1rem; max-width: 680px; margin: 0 auto; }
+    .search-inner { display: flex; align-items: center; gap: 1rem; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: .75rem 1.25rem; transition: border-color .2s, box-shadow .2s; }
+    .search-inner:focus-within { border-color: var(--green); box-shadow: 0 0 28px rgba(0,229,160,.09); }
+    #searchInput { flex: 1; background: none; border: none; outline: none; color: var(--white); font-size: .93rem; font-family: 'Syne', sans-serif; }
+    #searchInput::placeholder { color: var(--muted); }
+    .search-clear { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; display: none; transition: color .2s; }
+    .search-clear:hover { color: var(--white); }
+    #searchCount { text-align: center; margin-top: .6rem; font-size: .75rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); min-height: 1.2em; }
+
+    /* CATALOGUE */
+    #catalogo { position: relative; z-index: 1; padding: 1rem 2rem 6rem; max-width: 1180px; margin: 0 auto; }
+    .cat-header { text-align: center; margin-bottom: 2.5rem; }
+    .section-eyebrow { font-size: .68rem; letter-spacing: 5px; text-transform: uppercase; color: var(--green); margin-bottom: .5rem; }
+    .section-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2rem, 5vw, 3.25rem); letter-spacing: 4px; line-height: 1; }
+
+    /* FILTERS */
+    .filters { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2.25rem; }
+    .f-btn { padding: .4rem 1.15rem; border-radius: 50px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: .72rem; letter-spacing: 2px; text-transform: uppercase; cursor: pointer; font-family: 'Syne', sans-serif; transition: all .2s; }
+    .f-btn:hover { border-color: rgba(0,229,160,.4); color: var(--white); background: rgba(0,229,160,.05); }
+    .f-btn.active { border-color: var(--green); color: var(--white); background: rgba(0,229,160,.12); }
+
+    /* CARDS */
+    .catalogue-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 1.2rem; }
+    .game-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 1.65rem; position: relative; overflow: hidden; transition: transform .3s, box-shadow .3s, border-color .3s; display: flex; flex-direction: column; }
+    .game-card::after { content: ''; position: absolute; inset: 0; background: var(--grad); opacity: 0; transition: opacity .3s; z-index: 0; pointer-events: none; }
+    .game-card:hover { transform: translateY(-5px); border-color: rgba(0,229,160,.35); box-shadow: 0 14px 45px rgba(0,229,160,.1); }
+    .game-card:hover::after { opacity: .035; }
+    .game-card > * { position: relative; z-index: 1; }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: .9rem; }
+    .card-emoji { font-size: 2.1rem; line-height: 1; }
+    .card-tags { display: flex; flex-direction: column; align-items: flex-end; gap: .28rem; }
+    .tag { font-size: .58rem; letter-spacing: 1.5px; text-transform: uppercase; padding: .18rem .6rem; border-radius: 50px; }
+    .tag-cat { background: rgba(79,142,247,.1); color: var(--blue); border: 1px solid rgba(79,142,247,.2); }
+    .tag-hot { background: rgba(255,209,102,.08); color: var(--gold); border: 1px solid rgba(255,209,102,.18); }
+    .tag-new { background: rgba(0,229,160,.08); color: var(--green); border: 1px solid rgba(0,229,160,.18); }
+    .card-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.45rem; letter-spacing: 2.5px; margin-bottom: .3rem; }
+    .card-desc { font-size: .78rem; color: var(--muted); line-height: 1.55; margin-bottom: 1.1rem; flex: 1; }
+    .card-bottom { display: flex; align-items: center; justify-content: space-between; }
+    .card-price { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; letter-spacing: 1px; background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .card-price span { font-size: .78rem; color: var(--muted); -webkit-text-fill-color: var(--muted); }
+    .qty-control { display: flex; align-items: center; gap: .45rem; }
+    .qty-btn { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: .9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .18s; font-family: 'Syne', sans-serif; }
+    .qty-btn:hover { border-color: var(--green); color: var(--green); background: rgba(0,229,160,.08); }
+    .qty-num { font-family: 'Bebas Neue', sans-serif; font-size: 1.05rem; min-width: 18px; text-align: center; }
+    .add-cart-btn { width: 100%; margin-top: .95rem; padding: .6rem; border-radius: 11px; border: 1px solid var(--border); background: rgba(0,229,160,.05); color: var(--green); font-size: .75rem; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; font-family: 'Syne', sans-serif; font-weight: 700; transition: all .2s; }
+    .add-cart-btn:hover { background: rgba(0,229,160,.13); border-color: var(--green); }
+    .add-cart-btn.added { background: var(--grad); color: var(--bg); border-color: transparent; }
+    .no-results { grid-column: 1 / -1; text-align: center; padding: 4rem 0; display: none; }
+    .no-results-emoji { font-size: 3rem; margin-bottom: .75rem; display: block; }
+    .no-results h3 { font-family: 'Bebas Neue', sans-serif; font-size: 1.9rem; letter-spacing: 3px; color: var(--muted); }
+
+    /* CART SIDEBAR */
+    .cart-overlay { position: fixed; inset: 0; z-index: 600; background: rgba(6,12,24,.72); backdrop-filter: blur(8px); opacity: 0; pointer-events: none; transition: opacity .3s; }
+    .cart-overlay.open { opacity: 1; pointer-events: all; }
+    .cart-sidebar { position: fixed; top: 0; right: 0; bottom: 0; z-index: 700; width: min(420px, 100vw); background: var(--bg2); border-left: 1px solid var(--border); display: flex; flex-direction: column; transform: translateX(100%); transition: transform .35s cubic-bezier(.4,0,.2,1); }
+    .cart-sidebar.open { transform: translateX(0); }
+    .cart-header { display: flex; align-items: center; justify-content: space-between; padding: 1.5rem; border-bottom: 1px solid var(--border); }
+    .cart-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.45rem; letter-spacing: 3px; background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .cart-close { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .2s; }
+    .cart-close:hover { border-color: var(--green); color: var(--white); }
+    .cart-items { flex: 1; overflow-y: auto; padding: 1.1rem; display: flex; flex-direction: column; gap: .7rem; }
+    .cart-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--muted); text-align: center; gap: .75rem; }
+    .cart-empty-emoji { font-size: 3rem; }
+    .cart-empty p { font-size: .85rem; line-height: 1.65; }
+    .cart-item { display: flex; align-items: center; gap: .9rem; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: .9rem; animation: slideIn .25s ease; }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: translateX(0); } }
+    .ci-emoji { font-size: 1.7rem; flex-shrink: 0; }
+    .ci-info { flex: 1; }
+    .ci-name { font-family: 'Bebas Neue', sans-serif; font-size: .95rem; letter-spacing: 2px; }
+    .ci-price { font-size: .75rem; color: var(--green); margin-top: .12rem; }
+    .ci-qty { display: flex; align-items: center; gap: .35rem; }
+    .ci-qty-btn { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: .8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .18s; }
+    .ci-qty-btn:hover { border-color: var(--green); color: var(--white); }
+    .ci-qty-num { font-family: 'Bebas Neue', sans-serif; font-size: .95rem; min-width: 14px; text-align: center; }
+    .cart-footer { padding: 1.4rem; border-top: 1px solid var(--border); }
+    .cart-total-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.1rem; }
+    .cart-total-label { font-size: .8rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+    .cart-total-val { font-family: 'Bebas Neue', sans-serif; font-size: 1.9rem; letter-spacing: 2px; background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .cart-total-val span { font-size: .82rem; color: var(--muted); -webkit-text-fill-color: var(--muted); }
+    .clear-cart-btn { background: none; border: none; color: var(--muted); font-size: .72rem; letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; font-family: 'Syne', sans-serif; margin-bottom: .9rem; text-decoration: underline; transition: color .2s; display: block; }
+    .clear-cart-btn:hover { color: #ff6b6b; }
+    .wa-order-btn { display: flex; align-items: center; justify-content: center; gap: .7rem; width: 100%; padding: 1rem; background: #25D366; border: none; border-radius: 14px; color: #fff; font-weight: 800; font-size: .9rem; cursor: pointer; font-family: 'Syne', sans-serif; transition: transform .2s, box-shadow .2s; box-shadow: 0 0 24px rgba(37,211,102,.24); }
+    .wa-order-btn:hover { transform: translateY(-2px); box-shadow: 0 0 38px rgba(37,211,102,.38); }
+    .wa-order-btn:disabled { opacity: .35; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* DESTAQUES */
+    #destaques { position: relative; z-index: 1; padding: 6rem 2rem; background: var(--bg2); }
+    .feat-inner { max-width: 1100px; margin: 0 auto; }
+    .feat-header { text-align: center; margin-bottom: 3rem; }
+    .feat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1.4rem; }
+    .feat-card { border-radius: 24px; padding: 2.25rem; position: relative; overflow: hidden; background: var(--card); transition: transform .3s, box-shadow .3s; border: 1px solid transparent; }
+    .feat-card:hover { transform: translateY(-4px); }
+    .feat-card.gold { border-color: rgba(255,209,102,.18); }
+    .feat-card.blue { border-color: rgba(79,142,247,.18); }
+    .feat-card.green { border-color: rgba(0,229,160,.18); }
+    .feat-glow { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+    .feat-card.gold .feat-glow { background: radial-gradient(ellipse at top left, rgba(255,209,102,.07), transparent 70%); }
+    .feat-card.blue .feat-glow { background: radial-gradient(ellipse at top left, rgba(79,142,247,.07), transparent 70%); }
+    .feat-card.green .feat-glow { background: radial-gradient(ellipse at top left, rgba(0,229,160,.07), transparent 70%); }
+    .feat-card > *:not(.feat-glow) { position: relative; z-index: 1; }
+    .feat-emoji { font-size: 2.75rem; margin-bottom: .85rem; display: block; }
+    .feat-num { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; letter-spacing: 2px; margin-bottom: .2rem; }
+    .feat-card.gold .feat-num { color: var(--gold); }
+    .feat-card.blue .feat-num { color: var(--blue); }
+    .feat-card.green .feat-num { color: var(--green); }
+    .feat-label { font-size: .68rem; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: .85rem; }
+    .feat-desc { font-size: .85rem; color: var(--muted); line-height: 1.65; }
+
+    /* HOW TO ORDER */
+    #como-comprar { position: relative; z-index: 1; padding: 6rem 2rem; }
+    .how-inner { max-width: 1050px; margin: 0 auto; }
+    .how-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: center; }
+    .steps { display: flex; flex-direction: column; gap: 1.4rem; margin-top: 1.75rem; }
+    .step { display: flex; gap: 1.1rem; align-items: flex-start; }
+    .step-num { flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%; background: var(--grad); display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 1.15rem; color: var(--bg); box-shadow: 0 0 18px rgba(0,229,160,.18); }
+    .step-body strong { display: block; font-size: .95rem; margin-bottom: .25rem; }
+    .step-body span { font-size: .82rem; color: var(--muted); line-height: 1.6; }
+    .contact-card { background: var(--card); border: 1px solid var(--border); border-radius: 26px; padding: 2.75rem; text-align: center; position: relative; overflow: hidden; }
+    .contact-card::before { content: ''; position: absolute; top: -70px; left: 50%; transform: translateX(-50%); width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(circle, rgba(0,229,160,.1), transparent); pointer-events: none; }
+    .contact-card > * { position: relative; z-index: 1; }
+    .contact-icon { font-size: 2.25rem; margin-bottom: .6rem; display: block; }
+    .contact-num { font-family: 'Bebas Neue', sans-serif; font-size: 1.9rem; letter-spacing: 3px; background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin: .4rem 0 .6rem; }
+    .contact-note { font-size: .83rem; color: var(--muted); margin-bottom: 1.75rem; line-height: 1.65; }
+    .wa-direct-btn { display: inline-flex; align-items: center; gap: .6rem; background: #25D366; color: #fff; font-weight: 800; font-size: .9rem; padding: .85rem 1.65rem; border-radius: 50px; text-decoration: none; transition: transform .2s, box-shadow .2s; box-shadow: 0 0 22px rgba(37,211,102,.28); }
+    .wa-direct-btn:hover { transform: translateY(-3px); box-shadow: 0 0 38px rgba(37,211,102,.42); }
+
+    /* TOAST */
+    .toast { position: fixed; bottom: 5rem; left: 50%; transform: translateX(-50%) translateY(16px); background: var(--card); border: 1px solid var(--green); color: var(--white); font-size: .82rem; padding: .7rem 1.4rem; border-radius: 50px; z-index: 800; opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; white-space: nowrap; box-shadow: 0 0 22px rgba(0,229,160,.12); }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* FOOTER */
+    footer { position: relative; z-index: 1; padding: 3.5rem 2rem; border-top: 1px solid var(--border); text-align: center; }
+    .footer-logo { font-family: 'Bebas Neue', sans-serif; font-size: 2.25rem; letter-spacing: 8px; background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; display: block; margin-bottom: .35rem; }
+    .footer-sub { font-size: .68rem; letter-spacing: 5px; color: var(--muted); text-transform: uppercase; margin-bottom: 1.25rem; }
+    .footer-links { display: flex; gap: 1.5rem; justify-content: center; margin-bottom: 1.75rem; flex-wrap: wrap; }
+    .footer-links a { font-size: .78rem; letter-spacing: 1px; color: var(--muted); text-decoration: none; transition: color .2s; }
+    .footer-links a:hover { color: var(--green); }
+    .footer-copy { font-size: .72rem; color: rgba(122,147,184,.3); }
+
+    /* FLOAT WA */
+    .float-wa { position: fixed; bottom: 1.75rem; right: 1.75rem; z-index: 400; width: 52px; height: 52px; border-radius: 50%; background: #25D366; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(37,211,102,.5); text-decoration: none; transition: transform .2s; animation: riseIn 1s 1.2s ease both; }
+    .float-wa:hover { transform: scale(1.1) rotate(-5deg); }
+    .float-wa svg { width: 25px; height: 25px; fill: #fff; }
+
+    /* MOBILE MENU */
+    .mobile-menu { position: fixed; inset: 0; z-index: 450; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2rem; transform: translateX(-100%); transition: transform .35s ease; }
+    .mobile-menu.open { transform: translateX(0); }
+    .mobile-menu a { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; letter-spacing: 4px; color: var(--white); text-decoration: none; transition: color .2s; }
+    .mobile-menu a:hover { color: var(--green); }
+    .mob-close { position: absolute; top: 1.5rem; right: 1.5rem; font-size: 2rem; cursor: pointer; color: var(--muted); background: none; border: none; }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .burger { display: flex; }
+      .how-grid { grid-template-columns: 1fr; gap: 3rem; }
+      body { cursor: auto; }
+      #cursor, #cursor-ring { display: none; }
+    }
+    @media (max-width: 480px) {
+      nav { padding: .8rem 1.25rem; }
+      .hero-stats { gap: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<canvas id="bg-canvas"></canvas>
+
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mob-close" onclick="closeMobileMenu()">✕</button>
+  <a href="#catalogo" onclick="closeMobileMenu()">Catálogo</a>
+  <a href="#destaques" onclick="closeMobileMenu()">Destaques</a>
+  <a href="#como-comprar" onclick="closeMobileMenu()">Encomendar</a>
+</div>
+
+<!-- NAVBAR -->
+<nav id="navbar">
+  <a href="#" class="nav-left">
+    <svg class="nav-logo-svg" viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
+      <defs><linearGradient id="nlg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00E5A0"/><stop offset="100%" stop-color="#4F8EF7"/></linearGradient></defs>
+      <path d="M60 20L20 20L20 60L0 60L0 100L20 100L20 140L60 140L60 110L35 110L35 50L60 50Z" fill="url(#nlg)"/>
+      <path d="M80 20L160 20L160 50L135 50L135 140L105 140L105 50L80 50Z" fill="#F0F6FF"/>
+      <circle cx="160" cy="110" r="12" fill="#F0F6FF"/>
+      <circle cx="190" cy="80" r="12" fill="url(#nlg)"/>
+    </svg>
+    <span class="nav-brand">ET TOY'S</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#catalogo">Catálogo</a></li>
+    <li><a href="#destaques">Destaques</a></li>
+    <li><a href="#como-comprar">Encomendar</a></li>
+  </ul>
+  <div class="nav-right">
+    <button class="cart-btn" onclick="toggleCart()">🛒 Carrinho <span class="cart-count" id="cartCount">0</span></button>
+    <div class="burger" onclick="openMobileMenu()"><span></span><span></span><span></span></div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="hero-grid"></div>
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  <div class="hero-logo-wrap">
+    <svg class="hero-logo-svg" viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
+      <defs><linearGradient id="hlg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00E5A0"/><stop offset="100%" stop-color="#4F8EF7"/></linearGradient></defs>
+      <path d="M60 20L20 20L20 60L0 60L0 100L20 100L20 140L60 140L60 110L35 110L35 50L60 50Z" fill="url(#hlg)"/>
+      <path d="M80 20L160 20L160 50L135 50L135 140L105 140L105 50L80 50Z" fill="#F0F6FF"/>
+      <circle cx="160" cy="110" r="12" fill="#F0F6FF"/>
+      <circle cx="190" cy="80" r="12" fill="url(#hlg)"/>
+    </svg>
+  </div>
+  <div class="hero-eyebrow"><span class="eline"></span>Maputo · Moçambique<span class="eline"></span></div>
+  <h1>ET TOY'S</h1>
+  <p class="hero-sub">Games & Entertainment</p>
+  <p class="hero-desc">Os melhores jogos de tabuleiro e cartas para toda a família. Adiciona ao carrinho e encomenda directo via WhatsApp — rápido e simples.</p>
+  <div class="hero-actions">
+    <a class="btn-primary" href="#catalogo">🎮 Ver Catálogo</a>
+    <button class="btn-ghost" onclick="toggleCart()">🛒 Ver Carrinho</button>
+  </div>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num" data-target="12">0</div><div class="stat-label">Jogos Disponíveis</div></div>
+    <div class="stat"><div class="stat-num">300 MT</div><div class="stat-label">A Partir De</div></div>
+    <div class="stat"><div class="stat-num">100%</div><div class="stat-label">Entrega Garantida</div></div>
+  </div>
+</header>
+
+<div class="divider"></div>
+
+<!-- SEARCH -->
+<div class="search-wrap">
+  <div class="search-inner">
+    <span>🔍</span>
+    <input type="text" id="searchInput" placeholder="Pesquisar jogo... ex: UNO, Monopoly, Xadrez" oninput="handleSearch(this.value)"/>
+    <button class="search-clear" id="searchClear" onclick="clearSearch()">✕</button>
+  </div>
+  <p id="searchCount"></p>
+</div>
+
+<!-- CATALOGUE -->
+<section id="catalogo">
+  <div class="cat-header">
+    <p class="section-eyebrow">Preçário Oficial 2025</p>
+    <h2 class="section-title">CATÁLOGO COMPLETO</h2>
+  </div>
+  <div class="filters">
+    <button class="f-btn active" onclick="filterCat('all',this)">Todos</button>
+    <button class="f-btn" onclick="filterCat('cartas',this)">🃏 Cartas</button>
+    <button class="f-btn" onclick="filterCat('tabuleiro',this)">🎲 Tabuleiro</button>
+    <button class="f-btn" onclick="filterCat('estrategia',this)">♟️ Estratégia</button>
+  </div>
+  <div class="catalogue-grid" id="grid">
+    <div class="no-results" id="noResults"><span class="no-results-emoji">🎯</span><h3>NENHUM JOGO ENCONTRADO</h3></div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- DESTAQUES -->
+<section id="destaques">
+  <div class="feat-inner">
+    <div class="feat-header">
+      <p class="section-eyebrow">Porquê Escolher</p>
+      <h2 class="section-title">OS NOSSOS DESTAQUES</h2>
+    </div>
+    <div class="feat-grid">
+      <div class="feat-card gold">
+        <div class="feat-glow"></div>
+        <span class="feat-emoji">🏆</span>
+        <div class="feat-num">Mais Vendido</div>
+        <div class="feat-label">Produto Popular</div>
+        <div class="feat-desc">O UNO Wild Clássico é o jogo mais pedido — diversão garantida para grupos de amigos e família inteira.</div>
+      </div>
+      <div class="feat-card blue">
+        <div class="feat-glow"></div>
+        <span class="feat-emoji">⚡</span>
+        <div class="feat-num">Entrega Rápida</div>
+        <div class="feat-label">Resposta em Minutos</div>
+        <div class="feat-desc">Enviamos a tua encomenda para o WhatsApp em minutos. Combina a entrega ou levantamento directo.</div>
+      </div>
+      <div class="feat-card green">
+        <div class="feat-glow"></div>
+        <span class="feat-emoji">💯</span>
+        <div class="feat-num">100% Originais</div>
+        <div class="feat-label">Qualidade Garantida</div>
+        <div class="feat-desc">Todos os produtos são originais e de qualidade. Da família às noites de jogos, tens sempre a opção certa.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- HOW TO ORDER -->
+<section id="como-comprar">
+  <div class="how-inner">
+    <div class="how-grid">
+      <div>
+        <p class="section-eyebrow">Processo Simples</p>
+        <h2 class="section-title">COMO ENCOMENDAR</h2>
+        <div class="steps">
+          <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Escolhe os Teus Jogos</strong><span>Navega pelo catálogo, usa os filtros ou a pesquisa para encontrar o que queres.</span></div></div>
+          <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Adiciona ao Carrinho</strong><span>Clica em "Adicionar" em cada jogo. Ajusta as quantidades directamente no carrinho.</span></div></div>
+          <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Envia pelo WhatsApp</strong><span>Clica em "Encomendar no WhatsApp" — a mensagem com os teus jogos é gerada automaticamente!</span></div></div>
+          <div class="step"><div class="step-num">4</div><div class="step-body"><strong>Combina e Recebe</strong><span>Confirmamos a entrega e o pagamento contigo. Simples assim!</span></div></div>
+        </div>
+      </div>
+      <div class="contact-card">
+        <span class="contact-icon">📱</span>
+        <p class="section-eyebrow">Contacto Directo</p>
+        <p class="contact-num">+258 83 397 3761</p>
+        <p class="contact-note">Disponível via WhatsApp e Chamada.<br/>Resposta rápida garantida todos os dias.</p>
+        <a class="wa-direct-btn" href="https://wa.me/258833973761" target="_blank" rel="noopener">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+          Falar no WhatsApp
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <span class="footer-logo">ET TOY'S</span>
+  <p class="footer-sub">Games & Entertainment · Maputo, Moçambique</p>
+  <div class="footer-links">
+    <a href="#catalogo">Catálogo</a>
+    <a href="#destaques">Destaques</a>
+    <a href="#como-comprar">Como Encomendar</a>
+    <a href="https://wa.me/258833973761" target="_blank">WhatsApp</a>
+  </div>
+  <p class="footer-copy">© 2025 ET TOY'S · Todos os direitos reservados · Feito com ❤️ em Maputo</p>
+</footer>
+
+<!-- FLOAT WA -->
+<a class="float-wa" href="https://wa.me/258833973761" target="_blank" rel="noopener" title="WhatsApp">
+  <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+</a>
+
+<!-- CART -->
+<div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
+<div class="cart-sidebar" id="cartSidebar">
+  <div class="cart-header">
+    <span class="cart-title">🛒 CARRINHO</span>
+    <button class="cart-close" onclick="toggleCart()">✕</button>
+  </div>
+  <div class="cart-items" id="cartItems">
+    <div class="cart-empty" id="cartEmpty">
+      <span class="cart-empty-emoji">🎮</span>
+      <p>O teu carrinho está vazio.<br/>Adiciona jogos para encomendar!</p>
+    </div>
+  </div>
+  <div class="cart-footer">
+    <div class="cart-total-row">
+      <span class="cart-total-label">Total</span>
+      <span class="cart-total-val" id="cartTotal">0<span> MT</span></span>
+    </div>
+    <button class="clear-cart-btn" onclick="clearCart()">Limpar carrinho</button>
+    <button class="wa-order-btn" id="waOrderBtn" onclick="orderOnWhatsApp()" disabled>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+      Encomendar no WhatsApp
+    </button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATA ──
+const GAMES = [
+  { id:1,  name:'UNO WILD',          cat:'cartas',    price:300,  emoji:'🃏', desc:'O clássico de sempre. Ideal para 2 a 10 jogadores. Diversão garantida em família!', tags:['hot'] },
+  { id:2,  name:'UNO ALL WILD',      cat:'cartas',    price:300,  emoji:'🌀', desc:'Versão especial onde todas as cartas são wildcards. Caos total garantido!', tags:['new'] },
+  { id:3,  name:'UNO FLIP',          cat:'cartas',    price:300,  emoji:'🔄', desc:'Vira o baralho! Dois lados, duas experiências. Reviravoltas até ao fim.', tags:[] },
+  { id:4,  name:'UNO NO MERCY',      cat:'cartas',    price:350,  emoji:'😤', desc:'A versão mais brutal do UNO. Regras sem piedade para os mais corajosos.', tags:['hot'] },
+  { id:5,  name:'UNO LILO & STITCH', cat:'cartas',    price:300,  emoji:'🌺', desc:'Edição especial temática Disney. Colecção exclusiva Lilo & Stitch!', tags:['new'] },
+  { id:6,  name:'30 SECONDS',        cat:'tabuleiro', price:1000, emoji:'⏱️', desc:'O jogo das palavras rápidas! Descreve o máximo em 30 segundos. Perfeito para grupos.', tags:[] },
+  { id:7,  name:'CLASSIC JENGA',     cat:'tabuleiro', price:1000, emoji:'🏗️', desc:'Remove blocos sem deixar a torre cair. Concentração máxima necessária!', tags:[] },
+  { id:8,  name:'UNO STACKO',        cat:'tabuleiro', price:1500, emoji:'🌪️', desc:'UNO e Jenga combinados num só jogo épico. Empilha, puxa e nunca deixes cair!', tags:['hot'] },
+  { id:9,  name:'DOMINOES',          cat:'tabuleiro', price:850,  emoji:'🀱', desc:'O eterno dominó. 28 peças de qualidade para horas de jogo com a família.', tags:[] },
+  { id:10, name:'MONOPOLY',          cat:'tabuleiro', price:2250, emoji:'🏦', desc:'Compra, vende, constrói e domina o mercado. O jogo de estratégia mais famoso!', tags:[] },
+  { id:11, name:'XADREZ',            cat:'estrategia',price:1850, emoji:'♟️', desc:'O jogo de estratégia mais antigo. Treina a mente, a paciência e o raciocínio.', tags:[] },
+  { id:12, name:'MIKADO SPIEL',      cat:'estrategia',price:350,  emoji:'🥢', desc:'Remove pauzinhos sem mover os outros. Requer mão firme e nervo de aço!', tags:[] },
+];
+
+let cart = {};
+let currentFilter = 'all';
+let searchQuery = '';
+let quantities = {};
+GAMES.forEach(g => quantities[g.id] = 1);
+
+// ── RENDER ──
+function renderCards() {
+  const grid = document.getElementById('grid');
+  grid.querySelectorAll('.game-card').forEach(el => el.remove());
+  const noRes = document.getElementById('noResults');
+
+  const filtered = GAMES.filter(g => {
+    const mCat = currentFilter === 'all' || g.cat === currentFilter;
+    const mSearch = g.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    g.desc.toLowerCase().includes(searchQuery.toLowerCase());
+    return mCat && mSearch;
+  });
+
+  const sc = document.getElementById('searchCount');
+  sc.textContent = searchQuery ? `${filtered.length} jogo${filtered.length !== 1 ? 's' : ''} encontrado${filtered.length !== 1 ? 's' : ''}` : '';
+
+  if (!filtered.length) { noRes.style.display = 'block'; return; }
+  noRes.style.display = 'none';
+
+  filtered.forEach((g, i) => {
+    const inCart = cart[g.id] || 0;
+    const card = document.createElement('div');
+    card.className = 'game-card';
+    card.style.cssText = `animation: riseIn .45s ${i*.05}s ease both; opacity:0;`;
+
+    const tagHtml = [
+      `<span class="tag tag-cat">${g.cat}</span>`,
+      g.tags.includes('hot') ? `<span class="tag tag-hot">🔥 Popular</span>` : '',
+      g.tags.includes('new') ? `<span class="tag tag-new">✨ Novo</span>` : '',
+    ].join('');
+
+    card.innerHTML = `
+      <div class="card-top">
+        <span class="card-emoji">${g.emoji}</span>
+        <div class="card-tags">${tagHtml}</div>
+      </div>
+      <div class="card-name">${g.name}</div>
+      <div class="card-desc">${g.desc}</div>
+      <div class="card-bottom">
+        <span class="card-price">${g.price.toLocaleString('pt-MZ')}<span> MT</span></span>
+        <div class="qty-control">
+          <button class="qty-btn" onclick="changeQty(${g.id},-1)">−</button>
+          <span class="qty-num" id="qty-${g.id}">${quantities[g.id]}</span>
+          <button class="qty-btn" onclick="changeQty(${g.id},+1)">+</button>
+        </div>
+      </div>
+      <button class="add-cart-btn ${inCart > 0 ? 'added' : ''}" id="addbtn-${g.id}" onclick="addToCart(${g.id})">
+        ${inCart > 0 ? `✓ No Carrinho (${inCart})` : '+ Adicionar ao Carrinho'}
+      </button>`;
+    grid.appendChild(card);
+  });
+}
+
+function changeQty(id, d) {
+  quantities[id] = Math.max(1, (quantities[id] || 1) + d);
+  const el = document.getElementById('qty-' + id);
+  if (el) el.textContent = quantities[id];
+}
+
+function addToCart(id) {
+  const game = GAMES.find(g => g.id === id);
+  cart[id] = (cart[id] || 0) + (quantities[id] || 1);
+  quantities[id] = 1;
+  updateCartUI();
+  renderCards();
+  showToast(`${game.emoji} ${game.name} adicionado!`);
+}
+
+function removeFromCart(id) { delete cart[id]; updateCartUI(); renderCards(); }
+
+function changeCartQty(id, d) {
+  cart[id] = Math.max(1, (cart[id] || 1) + d);
+  updateCartUI(); renderCards();
+}
+
+function clearCart() { cart = {}; updateCartUI(); renderCards(); }
+
+function updateCartUI() {
+  const items = Object.entries(cart);
+  const totalQty = items.reduce((s, [,q]) => s + q, 0);
+  const totalPrice = items.reduce((s, [id,q]) => s + (GAMES.find(g=>g.id==id)?.price||0)*q, 0);
+
+  const cc = document.getElementById('cartCount');
+  cc.textContent = totalQty;
+  cc.classList.toggle('visible', totalQty > 0);
+  document.getElementById('cartTotal').innerHTML = `${totalPrice.toLocaleString('pt-MZ')}<span> MT</span>`;
+  document.getElementById('waOrderBtn').disabled = items.length === 0;
+
+  const ci = document.getElementById('cartItems');
+  ci.querySelectorAll('.cart-item').forEach(el => el.remove());
+  const empty = document.getElementById('cartEmpty');
+
+  if (!items.length) { empty.style.display = 'flex'; return; }
+  empty.style.display = 'none';
+
+  items.forEach(([id, qty]) => {
+    const g = GAMES.find(g => g.id == id); if (!g) return;
+    const el = document.createElement('div');
+    el.className = 'cart-item';
+    el.innerHTML = `
+      <span class="ci-emoji">${g.emoji}</span>
+      <div class="ci-info">
+        <div class="ci-name">${g.name}</div>
+        <div class="ci-price">${(g.price*qty).toLocaleString('pt-MZ')} MT · ${qty}× ${g.price} MT</div>
+      </div>
+      <div class="ci-qty">
+        <button class="ci-qty-btn" onclick="changeCartQty(${g.id},-1)">−</button>
+        <span class="ci-qty-num">${qty}</span>
+        <button class="ci-qty-btn" onclick="changeCartQty(${g.id},+1)">+</button>
+        <button class="ci-qty-btn" onclick="removeFromCart(${g.id})" style="color:#ff6b6b;border-color:rgba(255,107,107,.3)">✕</button>
+      </div>`;
+    ci.appendChild(el);
+  });
+}
+
+function orderOnWhatsApp() {
+  const items = Object.entries(cart);
+  if (!items.length) return;
+  let msg = '🎮 *ET TOY\'S — Nova Encomenda*\n\n';
+  let total = 0;
+  items.forEach(([id, qty]) => {
+    const g = GAMES.find(g => g.id == id); if (!g) return;
+    const sub = g.price * qty; total += sub;
+    msg += `${g.emoji} *${g.name}* — ${qty}× — ${sub.toLocaleString('pt-MZ')} MT\n`;
+  });
+  msg += `\n💰 *Total: ${total.toLocaleString('pt-MZ')} MT*\n\nPor favor confirme disponibilidade e entrega. Obrigado! 🙏`;
+  window.open(`https://wa.me/258833973761?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function filterCat(cat, btn) {
+  currentFilter = cat;
+  document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCards();
+}
+
+function handleSearch(val) {
+  searchQuery = val;
+  document.getElementById('searchClear').style.display = val ? 'block' : 'none';
+  renderCards();
+}
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  handleSearch('');
+}
+
+function toggleCart() {
+  document.getElementById('cartOverlay').classList.toggle('open');
+  document.getElementById('cartSidebar').classList.toggle('open');
+}
+function openMobileMenu() { document.getElementById('mobileMenu').classList.add('open'); }
+function closeMobileMenu() { document.getElementById('mobileMenu').classList.remove('open'); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// NAVBAR SCROLL
+window.addEventListener('scroll', () => {
+  document.getElementById('navbar').classList.toggle('scrolled', scrollY > 50);
+});
+
+// CURSOR
+const cur = document.getElementById('cursor');
+const curR = document.getElementById('cursor-ring');
+if (cur) {
+  let mx=0,my=0,rx=0,ry=0;
+  document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cur.style.left=mx+'px'; cur.style.top=my+'px'; });
+  (function animR() {
+    rx += (mx-rx)*.13; ry += (my-ry)*.13;
+    curR.style.left=rx+'px'; curR.style.top=ry+'px';
+    requestAnimationFrame(animR);
+  })();
+  document.querySelectorAll('a,button,.game-card').forEach(el => {
+    el.addEventListener('mouseenter', () => cur.style.transform='translate(-50%,-50%) scale(2.2)');
+    el.addEventListener('mouseleave', () => cur.style.transform='translate(-50%,-50%) scale(1)');
+  });
+}
+
+// STAR CANVAS
+(function() {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  function resize() { canvas.width=innerWidth; canvas.height=innerHeight; }
+  function init() {
+    stars = Array.from({length:100}, () => ({
+      x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+      r: Math.random()*1.1, a: Math.random()*.65,
+      sp: Math.random()*.0025+.001, ph: Math.random()*Math.PI*2
+    }));
+  }
+  function draw(t) {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    stars.forEach(s => {
+      const alpha = (Math.sin(t*s.sp+s.ph)+1)/2*s.a;
+      ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(0,229,160,${alpha})`; ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  resize(); init(); draw(0);
+  window.addEventListener('resize', () => { resize(); init(); });
+})();
+
+// COUNTER
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting && e.target.dataset.target) {
+      const target = +e.target.dataset.target;
+      let cur = 0;
+      const step = Math.ceil(target/30);
+      const t = setInterval(() => {
+        cur = Math.min(cur+step, target);
+        e.target.textContent = cur;
+        if (cur >= target) clearInterval(t);
+      }, 40);
+      obs.unobserve(e.target);
+    }
+  });
+}, {threshold:.5});
+document.querySelectorAll('[data-target]').forEach(el => obs.observe(el));
+
+// INIT
+renderCards(); updateCartUI();
+</script>
+</body>
+</html>
